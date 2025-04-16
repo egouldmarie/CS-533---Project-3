@@ -224,10 +224,15 @@ def bootstrap(samples, B):
 
 
 if __name__=="__main__":
-    filename1 = "dataset-1-1.csv"
-    filename2 = "dataset-2-1.csv"
-    filename3 = "dataset-3-1.csv"
-    filename4 = "dataset-4-1.csv"
+
+    # Change this to get the correct file 
+    NUMBER_OF_POINTS = 2000
+
+
+    filename1 = "DS-1/dataset-1-1-" + str(NUMBER_OF_POINTS) + ".csv"
+    filename2 = "DS-2/dataset-2-1-" + str(NUMBER_OF_POINTS) + ".csv"
+    filename3 = "DS-3/dataset-3-1-" + str(NUMBER_OF_POINTS) + ".csv"
+    filename4 = "DS-4/dataset-4-1-" + str(NUMBER_OF_POINTS) + ".csv"
 
     # CHANGE FILE USED FOR TESTING HERE 
     FILE_IN_USE = filename1

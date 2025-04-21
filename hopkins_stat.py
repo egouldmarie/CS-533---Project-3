@@ -2,8 +2,15 @@ import csv
 import math
 import random
 import numpy as np
-import matplotlib.pyplot as plt
-import scipy.stats as stats
+
+# Try to import matplotlib, but ignore if not available
+try:
+    import matplotlib.pyplot as plt
+    import scipy.stats as stats
+    MATPLOTLIB_AVAILABLE = True
+except ImportError:
+    print("Warning: matplotlib or scipy not available. Plotting functions disabled.")
+    MATPLOTLIB_AVAILABLE = False
 
 import BoundingBox
 from BoundingBox import *
@@ -55,12 +62,18 @@ def hopkins_stat(D, m=10):
 
 
 def get_p_vals(H, mean, std):
+    if not MATPLOTLIB_AVAILABLE:
+        print("Warning: scipy not available. Skipping p-value calculation.")
+        return None
     Z_scores = (H - mean) / std
     p_values = 2 * (1 - stats.norm.cdf(np.abs(Z_scores)))
     return p_values
 
 
 def get_p_vals_v2(H):
+    if not MATPLOTLIB_AVAILABLE:
+        print("Warning: scipy not available. Skipping p-value calculation.")
+        return None
     Z_scores = stats.zscore(H)
     p_values_twoTail =  stats.norm.sf(abs(Z_scores))*2
     return p_values_twoTail
@@ -91,6 +104,10 @@ def get_beta_hats (bootstrap_means, var):
 
 
 def plot_histogram(samples, mean, std, file_name):
+    if not MATPLOTLIB_AVAILABLE:
+        print("Warning: matplotlib not available. Skipping histogram plotting.")
+        return
+    
     plt.figure(figsize=(12, 6))
     plt.hist(
         samples,
@@ -120,6 +137,10 @@ def plot_histogram(samples, mean, std, file_name):
 
 
 def plot_p_vals(p_vals, file_name):
+    if not MATPLOTLIB_AVAILABLE:
+        print("Warning: matplotlib not available. Skipping p-values plotting.")
+        return
+    
     plt.figure(figsize=(12, 6))
     plt.hist(p_vals, 
             bins=21,
@@ -138,6 +159,10 @@ def plot_p_vals(p_vals, file_name):
 
 
 def plot_bootstrap(bootstrap_means_H, bootstrap_means_alpha_hat, bootstrap_means_beta_hat, file_name):
+    if not MATPLOTLIB_AVAILABLE:
+        print("Warning: matplotlib not available. Skipping bootstrap plotting.")
+        return
+    
     plt.figure(figsize=(12, 6))
     plt.hist(bootstrap_means_H, 
             bins=21,
@@ -210,7 +235,7 @@ def bootstrap(samples, B):
     lower_alpha_hat_ND, upper_alpha_hat_ND = normal_dis_method(bootstrap_means_alpha_hat)
     lower_beta_hat_ND, upper_beta_hat_ND = normal_dis_method(bootstrap_means_beta_hat)
 
-    if PRINT_OUTPUT:
+    if PRINT_OUTPUT and MATPLOTLIB_AVAILABLE:
         print(f"(H̅) Pivotal method: lower- {lower_H_P}  upper {upper_H_P}")
         print(f"(H̅) Normal Distribution method: lower- {lower_H_ND}  upper {upper_H_ND}")
 
@@ -248,31 +273,27 @@ if __name__=="__main__":
     m = 100
     B = 1000
     Hs = [hopkins_stat(D_Grid, m) for b in range(B)]
-    mean = sum(Hs)/B
-    std = np.std(Hs)
-    var = np.var(Hs, ddof=1)
 
-    # Getting P-values for Hopkins statistics
-    p_vals = get_p_vals_v2(np.array(Hs))
-
-    # Goodness-of-fit 
-    ks_stat, ks_p_val = stats.kstest(p_vals, 'uniform')
-
-    # Estimating alpha and beta hat
-    alpha_hat = mean *(((mean * (1-mean)) / var) - 1)
-    beta_hat = (1-mean) * (((mean * (1-mean)) / var) - 1)
-
-    # Bootstrapping
-    bootstrap_means_H, bootstrap_means_alpha_hat, bootstrap_means_beta_hat = bootstrap(Hs, B)
-
+    # Statistics about the Samples
+    mean = np.mean(Hs)
+    std = np.std(Hs, ddof=1)
+    alpha_hat = mean * (((mean * (1 - mean)) / np.var(Hs, ddof=1)) - 1)
+    beta_hat = (1 - mean) * (((mean * (1 - mean)) / np.var(Hs, ddof=1)) - 1)
+    
     if PRINT_OUTPUT:
-        print( f" Single H sample value to answer the last two questions in 2: {Hs[0]}")
-        print(f" Single P-value for question two: {2 * min(Hs[0], 1 - Hs[0])}")
-        print(f"Kolmogorov-Smirnov test results on P-value checking for Uniform distribution- Stat: {ks_stat}  P-value: {ks_p_val}")
-        print(f"Sample mean (H̅): {mean}, Sample variance (S²): {var} ")
-        print(f"Alpha_hat: {alpha_hat}   Beta_hat: {beta_hat}")
-
-    if SHOW_PLOTS:
-        plot_histogram(Hs, mean, std, FILE_IN_USE)
-        plot_p_vals(p_vals)
-        plot_bootstrap(bootstrap_means_H, bootstrap_means_alpha_hat, bootstrap_means_beta_hat, FILE_IN_USE)
+        print("(H̅ ) Sample mean:", mean)
+        print("(H̅ ) Sample standard deviation:", std)
+        print("(α̂ ) Alpha hat:", alpha_hat)
+        print("(β̂ ) Beta hat:", beta_hat)
+    
+    # Compute P-values
+    if MATPLOTLIB_AVAILABLE:
+        p_vals = get_p_vals_v2(Hs)
+        
+        # Bootstrapping
+        bootstrap_means_H, bootstrap_means_alpha_hat, bootstrap_means_beta_hat = bootstrap(Hs, B)
+        
+        if SHOW_PLOTS:
+            plot_histogram(Hs, mean, std, FILE_IN_USE)
+            plot_p_vals(p_vals, FILE_IN_USE)
+            plot_bootstrap(bootstrap_means_H, bootstrap_means_alpha_hat, bootstrap_means_beta_hat, FILE_IN_USE)
